@@ -28,7 +28,7 @@ An interactive **Reinforcement Learning** project where an agent learns Blackjac
 ## Learning Algorithms
 
 ### Monte Carlo Prediction (Action Values)
-Estimates $ Q(s,a) $ by averaging the **empirical returns** from full episodes generated under a behavior policy.
+Estimates \( Q(s,a) \) by averaging the **empirical returns** from full episodes generated under a behavior policy.
 
 ### Constant-α Monte Carlo Control
 Incremental policy improvement using ε-greedy exploration and constant-step updates:
@@ -37,8 +37,8 @@ $$
 Q(s,a) \leftarrow Q(s,a) + \alpha \big(G - Q(s,a)\big)
 $$
 
-- $G$: **return** from the first occurrence of \((s,a)\) to episode end (undiscounted or discounted by \( \gamma \))
-- $ \alpha $: constant step size for stability and continual adaptation
+- \( G \): **return** from the first occurrence of \((s,a)\) to episode end (undiscounted or discounted by \( \gamma \))
+- \( \alpha \): constant step size for stability and continual adaptation
 - **Policy improvement**: after each update, choose \( \arg\max_a Q(s,a) \) with probability \(1-\varepsilon\); otherwise explore.
 
 > Notes:
