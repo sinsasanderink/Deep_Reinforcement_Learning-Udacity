@@ -1,14 +1,14 @@
 # 🎰 Monte Carlo Blackjack with Pygame Simulation
 
-An interactive **Reinforcement Learning** project where an agent learns to play Blackjack via **Monte Carlo (MC) control** in OpenAI Gym’s `Blackjack-v1`, with a real-time **Pygame** visualizer that reveals the agent’s internal state: Q-values, ε-greedy choices, confidence, exploration rate, and strategy hints.
+An interactive **Reinforcement Learning** project where an agent learns Blackjack with **Monte Carlo (MC) control** in OpenAI Gym’s `Blackjack-v1`, visualized live in **Pygame**. The UI exposes Q-values, ε-greedy decisions, confidence (|ΔQ|), state coverage, and evolving win rate—turning a Q-table into something you can see and reason about.
 
 ---
 
-## What This Project Does
+## What It Shows
 
-- **Model-free learning from full episodes.** The agent improves purely from sampled returns—no transition model, no bootstrapping.
-- **Policy improvement via ε-greedy control.** Early training explores widely; ε decays to favor exploitation as knowledge accumulates.
-- **Transparent learning.** The UI surfaces per-state `STICK`/`HIT` Q-values, preferred action and confidence (‖ΔQ‖), running win rate, ε, and state coverage—turning tables into intuition.
+- **Model-free learning from episodes.** The agent improves using only sampled returns—no transition model, no TD bootstrapping.
+- **Policy improvement via ε-greedy control.** Early exploration (high ε) gradually gives way to exploitation as estimates stabilize.
+- **Transparent internals.** For each state, you can see `STICK`/`HIT` Q-values, the preferred action, confidence, exploration vs exploitation, and concise strategy hints.
 
 ---
 
@@ -16,60 +16,64 @@ An interactive **Reinforcement Learning** project where an agent learns to play 
 
 - **State**: `(player_sum ∈ {0…31}, dealer_upcard ∈ {1…10}, usable_ace ∈ {0,1})`  
 - **Actions**: `STICK = 0`, `HIT = 1`  
-- **Terminal rewards**: `+1 / 0 / −1`
+- **Rewards**: terminal `+1 / 0 / −1`
 
 ---
 
-## Learning Overview
+## Learning Mechanics (MC)
 
-### Monte Carlo Returns
-For a first occurrence of state–action pair \((s_t, a_t)\) in an episode of horizon \(T\), the (discounted) return is
-\[
-G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^{k}\, R_{t+1+k}.
-\]
+**Episode return** from the first visit to a state–action pair:
 
-### Constant-α MC Control (Incremental)
-The action-value estimate is updated as
 $$
-Q(s,a) \;\leftarrow\; Q(s,a) + \alpha \big( G - Q(s,a) \big),
+G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^{\,k}\, R_{t+1+k}
 $$
-where \(G\) is the Monte Carlo return, \(\alpha\) is a constant step size, and \(\gamma\) is the discount factor.
 
-### Behavior & Improvement
-- **Behavior policy**: ε-greedy over current \(Q\) to ensure coverage.  
-- **Improved target policy**: greedy w.r.t. \(Q\).  
-- **Action selection**: with probability \(1-\varepsilon\) choose \(\arg\max_a Q(s,a)\); otherwise explore.
+**Constant-α Monte Carlo control (incremental update):**
 
-> In this Blackjack setting, first-visit and every-visit MC produce equivalent estimates in expectation; constant-\(\alpha\) updates enable continual adaptation.
+$$
+Q(s,a) \;\leftarrow\; Q(s,a) \;+\; \alpha \,\big[\,G \;-\; Q(s,a)\,\big]
+$$
+
+**Greedy policy wrt Q (used for improvement/exploitation):**
+
+$$
+\pi(s) \;=\; \arg\max_{a} \, Q(s,a)
+$$
+
+- `alpha (α)`: constant step size for stability and continual adaptation  
+- `gamma (γ)`: discount factor (often 1.0 in episodic Blackjack)  
+- `epsilon (ε)`: exploration rate with gentle decay to a minimum floor
+
+> In Blackjack, first-visit and every-visit MC yield equivalent estimates in expectation; constant-α updates keep learning responsive as more episodes arrive.
 
 ---
 
-## Visualization (Pygame)
+## Visualization Highlights
 
-- **Episode playback** with “thinking” and “action” phases.
-- **Dashboards**: episodes, win/loss/draw tallies, \(\varepsilon\), states learned, \(\alpha\), algorithm label.
-- **Q-values panel**: highlights best action, shows confidence \( |Q(s,\text{STICK})-Q(s,\text{HIT})| \), and whether the agent is exploring or exploiting.
-- **Strategy hints** to connect learned behavior to human blackjack intuition (e.g., “Hard 17+ → STICK”, “≤11 → HIT”, mid-totals depend on dealer upcard).
+- **Thinking → Action** phases each step, with the current state, the Q-lookup, confidence, and the chosen move.
+- **Dashboards** for episodes, W/L/D, ε, states learned, and α.
+- **Q-values panel** shows `Q(s, STICK)` vs `Q(s, HIT)`, preferred action, and whether the agent is exploring or exploiting.
+- **Strategy cues** that connect learned behavior to human intuition  
+  (e.g., hard 17+ → usually STICK; ≤11 → usually HIT; mid-range depends on dealer strength).
 
 ---
 
 ## Key Takeaways
 
-- **Monte Carlo can learn strong Blackjack behavior** without a model by averaging episode returns under ε-greedy exploration.
-- **Exploration scheduling matters**: slower ε decay yields broader state coverage and more stable policies.
-- **Readable internals accelerate understanding**: visualizing \(Q\), confidence, and ε makes it clear *why* the agent prefers `HIT` vs `STICK` in a given state.
-- **Heuristics emerge end-to-end**: with enough episodes, the learned policy mirrors textbook strategy (high hard totals stick; low totals hit; mid-range depends on dealer strength).
-- **Ablations are easy**: vary \(\alpha\), \(\varepsilon\) decay, and \(\gamma\) to study convergence speed, variance, and stability.
+- **Monte Carlo can learn strong play without a model** by averaging full-episode returns under a well-scheduled ε-greedy policy.
+- **Exploration scheduling matters.** A slow ε decay improves state coverage and reduces premature convergence to brittle policies.
+- **Visibility accelerates understanding.** Watching Q-values and confidence evolve makes it clear *why* the agent prefers `HIT` vs `STICK` in specific contexts.
+- **Emergent heuristics mirror textbook strategy.** With sufficient episodes, the policy approximates standard Blackjack guidance (high hard totals stick; low totals hit; mid-range is dealer-dependent).
+- **Ablations are simple.** Vary α, ε-decay, and γ to study convergence speed, variance, and stability.
 
 ---
 
-## Code Highlights
+## Code Structure (Essentials)
 
-- Safe wrappers for Gym API differences (`reset_env_safe`, `step_env_safe`).
-- Clean separation of concerns:
-  - ε-greedy episode generation from \(Q\)
-  - MC return computation & constant-\(\alpha\) updates
-  - Real-time rendering with fixed, legible layout
+- **Episode generation:** ε-greedy rollouts from the current Q.  
+- **Returns & updates:** compute `G` per first visit and apply the constant-α update to `Q(s,a)`.  
+- **Safety wrappers:** handle Gym API differences (`reset_env_safe`, `step_env_safe`).  
+- **Renderer:** fixed, legible Pygame layout for table, dashboards, Q-panel, and hints.
 
 ---
 
